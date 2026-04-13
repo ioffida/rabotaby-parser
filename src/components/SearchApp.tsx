@@ -69,12 +69,12 @@ function FilterHint({
   ariaLabel = "Подсказка по фильтру",
 }: {
   text: string;
-  /** Wider panel + scroll for longer methodology text */
+  /** Wide panel for long methodology copy (no inner scroll) */
   wide?: boolean;
   ariaLabel?: string;
 }) {
   const panelClass = wide
-    ? "w-[min(26rem,calc(100vw-2rem))] max-h-[min(70vh,22rem)] overflow-y-auto py-2.5"
+    ? "w-[min(52rem,calc(100vw-2rem))] overflow-visible py-2.5"
     : "w-[min(18rem,calc(100vw-2rem))] py-2";
 
   return (
