@@ -89,7 +89,7 @@ function FilterHint({
       </button>
       <span
         role="tooltip"
-        className={`pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-1.5 -translate-x-1/2 whitespace-pre-line rounded-lg border border-slate-200 bg-white px-3 text-left text-xs font-normal leading-relaxed text-slate-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 sm:left-auto sm:right-0 sm:translate-x-0 ${panelClass}`}
+        className={`pointer-events-none invisible absolute bottom-full left-0 z-30 mb-1.5 whitespace-pre-line rounded-lg border border-slate-200 bg-white px-3 text-left text-xs font-normal leading-relaxed text-slate-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 ${panelClass}`}
       >
         {text}
       </span>
