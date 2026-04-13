@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Аналитика вакансий по заработной плате · rabota.by",
   description:
-    "Поиск вакансий и зарплатные вилки по данным HeadHunter public API",
+    "Аналитика зарплат по вакансиям (Беларусь): вилки и медиана по HeadHunter API, фильтры, rabota.by",
 };
 
 export default function RootLayout({

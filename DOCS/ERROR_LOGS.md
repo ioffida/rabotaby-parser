@@ -1,6 +1,6 @@
 # Error logs — format for debugging
 
-When something fails, use **“Copy debug log”** in the UI (or copy server logs). Logs use a single JSON object so they are easy to paste into chat or tickets.
+When something fails, use **“Copy debug log”** in the UI (or copy server / terminal output). Logs use a single **JSON** object so they are easy to paste into chat or tickets.
 
 ## `AppLogPayload` schema
 
@@ -8,15 +8,15 @@ When something fails, use **“Copy debug log”** in the UI (or copy server log
 |-------|------|-------------|
 | `schemaVersion` | `1` | Format version |
 | `timestamp` | ISO string | When the log was created |
-| `source` | string | e.g. `client`, `react-error-boundary`, `api:areas` |
+| `source` | string | e.g. `client`, `react-error-boundary`, `api:areas`, `api:vacancies/stats` |
 | `severity` | `info` \| `warning` \| `error` | Level |
 | `message` | string | Human-readable summary |
-| `context` | object | Optional: route, user action, request id |
+| `context` | object | Optional: route, filters, truncated request info |
 | `error` | object? | `name`, `message`, `stack` |
 | `request` | object? | `method`, `url`, `query` |
 | `response` | object? | `status`, `statusText`, `bodyPreview` (truncated) |
 
-## Example (API failure)
+## Example (API failure — vacancies stats)
 
 ```json
 {
@@ -25,7 +25,17 @@ When something fails, use **“Copy debug log”** in the UI (or copy server log
   "source": "api:vacancies/stats",
   "severity": "error",
   "message": "HeadHunter API returned an error",
-  "context": { "text": "продавец", "area": "1002" },
+  "context": {
+    "text": "продавец",
+    "area": ["1002"],
+    "exact_match": false,
+    "only_with_salary": true,
+    "salary_range_only": false,
+    "experience": "",
+    "schedule": "",
+    "employment": "",
+    "requestQuery": { "text": "продавец", "area": "1002", "only_with_salary": "1" }
+  },
   "response": { "status": 403, "statusText": "Forbidden", "bodyPreview": "..." }
 }
 ```
@@ -49,9 +59,11 @@ When something fails, use **“Copy debug log”** in the UI (or copy server log
 
 ## HeadHunter `bad_user_agent`
 
-If `response.bodyPreview` contains `bad_user_agent` / `Bad User-Agent header`, api.hh.ru blocked the `User-Agent` string. Fix: set **`RABOTA_HH_USER_AGENT`** in `.env.local` (preferred) with your **real email** in parentheses. Use `RABOTA_*` if the shell or Cursor already defines `HH_USER_AGENT` (Next.js will not override existing process env vars from `.env.local`).
+If `response.bodyPreview` mentions **`bad_user_agent`** / **Bad User-Agent**, HH rejected the `User-Agent` string.
+
+**Fix:** set **`RABOTA_HH_USER_AGENT`** in `.env.local` (local) or the host’s env (production) to a **real** contact form: `AppName/1.0 (you@real-domain.com)`. Prefer `RABOTA_*` if Cursor or the shell already exports **`HH_USER_AGENT`** — Next.js will not override an existing process env from `.env.local`.
 
 ## Developer notes
 
-- Logs must **not** include secrets; never log `RABOTA_HH_USER_AGENT` / `HH_USER_AGENT` values in full if treated as sensitive.
-- Truncate large bodies (e.g. first 2 KB) in `bodyPreview`.
+- Logs must **not** include secrets; do not log full `RABOTA_HH_USER_AGENT` / `HH_USER_AGENT` values if you treat them as sensitive.
+- Truncate large bodies (e.g. first ~2 KB) in `bodyPreview`.
