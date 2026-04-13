@@ -31,6 +31,9 @@ export async function GET(req: NextRequest) {
   const onlyWithSalary =
     req.nextUrl.searchParams.get("only_with_salary") === "1" ||
     req.nextUrl.searchParams.get("only_with_salary") === "true";
+  const exactMatch =
+    req.nextUrl.searchParams.get("exact_match") === "1" ||
+    req.nextUrl.searchParams.get("exact_match") === "true";
   const salaryRangeOnly =
     req.nextUrl.searchParams.get("salary_range_only") === "1" ||
     req.nextUrl.searchParams.get("salary_range_only") === "true";
@@ -130,7 +133,8 @@ export async function GET(req: NextRequest) {
       const data = await hhFetchJson<HhVacanciesSearchResponse>(
         "/vacancies",
         {
-          text,
+          text: exactMatch && !text.includes('"') ? `"${text}"` : text,
+          ...(exactMatch ? { search_field: "name" } : {}),
           area: areaIds,
           page,
           per_page: PER_PAGE,
@@ -168,6 +172,7 @@ export async function GET(req: NextRequest) {
       query: {
         text,
         area: areaIds,
+        exact_match: exactMatch,
         only_with_salary: onlyWithSalary,
         salary_range_only: salaryRangeOnly,
         salary_filter_from: salaryFilterFrom,
@@ -187,6 +192,7 @@ export async function GET(req: NextRequest) {
     return nextResponseFromHhFailure("api:vacancies/stats", e, {
       text,
       area: areaIds,
+      exact_match: exactMatch,
       only_with_salary: onlyWithSalary,
       salary_range_only: salaryRangeOnly,
       salary_filter_from: salaryFilterFrom,

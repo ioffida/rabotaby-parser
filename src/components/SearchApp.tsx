@@ -27,6 +27,7 @@ type StatsPayload = {
   query: {
     text: string;
     area: string[];
+    exact_match?: boolean;
     only_with_salary: boolean;
     salary_range_only?: boolean;
     salary_filter_from?: number | null;
@@ -47,6 +48,28 @@ function indentLabel(depth: number, name: string): string {
   return `${"— ".repeat(depth)}${name}`;
 }
 
+/** Small "?" with CSS-only hover/focus tooltip (no extra deps). */
+function FilterHint({ text }: { text: string }) {
+  return (
+    <span className="group relative inline-flex shrink-0">
+      <button
+        type="button"
+        tabIndex={0}
+        aria-label="Подсказка по фильтру"
+        className="flex size-5 cursor-help items-center justify-center rounded-full border border-slate-300 bg-slate-100 text-[10px] font-semibold text-slate-500 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline focus-visible:ring-2 focus-visible:ring-sky-500"
+      >
+        ?
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-1.5 w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-normal leading-relaxed text-slate-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 sm:left-auto sm:right-0 sm:translate-x-0"
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
 export function SearchApp() {
   const [areasData, setAreasData] = useState<AreasPayload | null>(null);
   const [areasError, setAreasError] = useState<string | null>(null);
@@ -60,6 +83,7 @@ export function SearchApp() {
   const [experience, setExperience] = useState("");
   const [schedule, setSchedule] = useState("");
   const [employment, setEmployment] = useState("");
+  const [exactMatch, setExactMatch] = useState(false);
   const [onlyWithSalary, setOnlyWithSalary] = useState(false);
   const [salaryRangeOnly, setSalaryRangeOnly] = useState(false);
   const [salaryFilterFrom, setSalaryFilterFrom] = useState("");
@@ -161,6 +185,7 @@ export function SearchApp() {
 
       const params = new URLSearchParams({ text: trimmed });
       for (const id of selectedAreaIds) params.append("area", id);
+      if (exactMatch) params.set("exact_match", "1");
       if (onlyWithSalary) params.set("only_with_salary", "1");
       if (salaryRangeOnly && forkFrom != null && forkTo != null) {
         params.set("salary_range_only", "1");
@@ -192,6 +217,7 @@ export function SearchApp() {
     }
   }, [
     employment,
+    exactMatch,
     experience,
     onlyWithSalary,
     salaryFilterCurrency,
@@ -233,6 +259,15 @@ export function SearchApp() {
       );
     });
   }, [areasData, selectedAreaIds, toggleArea]);
+
+  const selectedAreaTags = useMemo(() => {
+    if (!areasData) return [];
+    const byId = new Map(areasData.areas.map((a) => [a.id, a.name]));
+    return selectedAreaIds.map((id) => ({
+      id,
+      name: byId.get(id) ?? id,
+    }));
+  }, [areasData, selectedAreaIds]);
 
   const selectedAreaSummary = useMemo(() => {
     if (!areasData || !lastQuery?.area?.length) return null;
@@ -338,6 +373,21 @@ export function SearchApp() {
             <p className="mb-2 text-xs text-slate-500">
               Отметьте галочками нужные города или область. Минимум один регион.
             </p>
+            {selectedAreaTags.length > 0 ? (
+              <div
+                className="mb-3 flex flex-wrap gap-1.5"
+                aria-label="Выбранные регионы"
+              >
+                {selectedAreaTags.map(({ id, name }) => (
+                  <span
+                    key={id}
+                    className="rounded-md bg-sky-100 px-2 py-1 text-xs font-medium text-sky-800"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <div
               className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/80 px-1 py-2"
               role="group"
@@ -415,24 +465,48 @@ export function SearchApp() {
           </div>
 
           <div className="space-y-2">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={onlyWithSalary}
-                onChange={(e) => setOnlyWithSalary(e.target.checked)}
-                className="size-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-              />
-              Только вакансии с указанной зарплатой
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={salaryRangeOnly}
-                onChange={(e) => setSalaryRangeOnly(e.target.checked)}
-                className="size-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
-              />
-              Только с вилками ОТ и ДО
-            </label>
+            <div className="flex items-start gap-2">
+              <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={exactMatch}
+                  onChange={(e) => setExactMatch(e.target.checked)}
+                  className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+                <span className="min-w-0 flex-1 leading-snug">
+                  Искать точную фразу только в названии вакансии
+                </span>
+              </label>
+              <FilterHint text="Ищет строгое совпадение введенной фразы именно в заголовке вакансии, игнорируя описание и название компании." />
+            </div>
+            <div className="flex items-start gap-2">
+              <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={onlyWithSalary}
+                  onChange={(e) => setOnlyWithSalary(e.target.checked)}
+                  className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+                <span className="min-w-0 flex-1 leading-snug">
+                  Только вакансии с указанной зарплатой
+                </span>
+              </label>
+              <FilterHint text="Отсеивает вакансии, в которых работодатель не указал размер заработной платы (по договоренности)." />
+            </div>
+            <div className="flex items-start gap-2">
+              <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={salaryRangeOnly}
+                  onChange={(e) => setSalaryRangeOnly(e.target.checked)}
+                  className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                />
+                <span className="min-w-0 flex-1 leading-snug">
+                  Только с вилками ОТ и ДО
+                </span>
+              </label>
+              <FilterHint text="Показывает только те вакансии, где указаны обе границы зарплаты (и минимум, и максимум) в выбранной валюте." />
+            </div>
             {salaryRangeOnly ? (
               <div className="ml-6 space-y-2 rounded-xl border border-slate-200 bg-slate-50/90 p-3">
                 <p className="text-xs text-slate-600">
@@ -500,10 +574,6 @@ export function SearchApp() {
                 </div>
               </div>
             ) : null}
-            <p className="text-xs text-slate-500">
-              Отметка «только с ЗП» по-прежнему сужает запрос к HH; фильтр вилок
-              не требует этого и отсекает лишнее уже после ответа API.
-            </p>
           </div>
 
           <button
@@ -557,6 +627,7 @@ export function SearchApp() {
                 · id: {lastQuery.area.join(", ")}
               </>
             )}
+            {lastQuery.exact_match ? " · точное совпадение в названии" : ""}
             {lastQuery.only_with_salary ? " · только с ЗП" : ""}
             {lastQuery.salary_range_only === true &&
             lastQuery.salary_filter_from != null &&
