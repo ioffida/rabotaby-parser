@@ -48,21 +48,48 @@ function indentLabel(depth: number, name: string): string {
   return `${"— ".repeat(depth)}${name}`;
 }
 
+/** Russian copy for salary stats methodology (user-facing). */
+const STATS_METHODOLOGY_HINT = `Одно число на вакансию (дальше все считают по нему):
+• если указаны «от» и «до» — (от + до) ÷ 2;
+• если только «от» или только «до» — берётся это одно значение.
+
+Среднее = (сумма всех таких чисел) ÷ (число вакансий в строке).
+Это не (min таблицы + max таблицы) ÷ 2: min и max — самая маленькая и самая большая «точка» среди вакансий, а среднее — по всем вакансиям сразу.
+
+Медиана — «середина списка», если выписать все числа по возрастанию (при чётном количестве — среднее двух центральных). Редкие очень большие зарплаты сильнее поднимают среднее, чем медиану.
+
+Колонки «Вилка min / max» — минимум и максимум именно этих «точек», а не минимум всех «от» и максимум всех «до» по выборке.
+
+Gross / net в подписи под таблицей — только метки из API; на сами суммы они не влияют.`;
+
 /** Small "?" with CSS-only hover/focus tooltip (no extra deps). */
-function FilterHint({ text }: { text: string }) {
+function FilterHint({
+  text,
+  wide,
+  ariaLabel = "Подсказка по фильтру",
+}: {
+  text: string;
+  /** Wider panel + scroll for longer methodology text */
+  wide?: boolean;
+  ariaLabel?: string;
+}) {
+  const panelClass = wide
+    ? "w-[min(26rem,calc(100vw-2rem))] max-h-[min(70vh,22rem)] overflow-y-auto py-2.5"
+    : "w-[min(18rem,calc(100vw-2rem))] py-2";
+
   return (
     <span className="group relative inline-flex shrink-0">
       <button
         type="button"
         tabIndex={0}
-        aria-label="Подсказка по фильтру"
+        aria-label={ariaLabel}
         className="flex size-5 cursor-help items-center justify-center rounded-full border border-slate-300 bg-slate-100 text-[10px] font-semibold text-slate-500 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 focus-visible:outline focus-visible:ring-2 focus-visible:ring-sky-500"
       >
         ?
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-1.5 w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs font-normal leading-relaxed text-slate-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 sm:left-auto sm:right-0 sm:translate-x-0"
+        className={`pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-1.5 -translate-x-1/2 whitespace-pre-line rounded-lg border border-slate-200 bg-white px-3 text-left text-xs font-normal leading-relaxed text-slate-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 sm:left-auto sm:right-0 sm:translate-x-0 ${panelClass}`}
       >
         {text}
       </span>
@@ -614,7 +641,14 @@ export function SearchApp() {
 
       {stats && lastQuery ? (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">Результаты</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold text-slate-900">Результаты</h2>
+            <FilterHint
+              wide
+              ariaLabel="Как считается статистика по зарплатам"
+              text={STATS_METHODOLOGY_HINT}
+            />
+          </div>
           <p className="text-xs leading-relaxed text-slate-500">
             Запрос: «{lastQuery.text}»
             {selectedAreaSummary ? (
